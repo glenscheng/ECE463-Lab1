@@ -58,5 +58,37 @@ t_make.texi.tar.gz:
 	./http_client www.gnu.org 80 /software/make/manual/make.texi.tar.gz
 	diff make.texi.tar.gz expected/make.texi.tar.gz
 
+valall: v_make.html v_index.html v_make.html.gz v_make.html_node.tar.gz v_make.info.tar.gz v_make.txt v_make.txt.gz v_make.dvi.gz v_make.pdf v_make.texi.tar.gz
+
+v_make.html:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.html
+
+v_index.html:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/html_node/index.html
+
+v_make.html.gz:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.html.gz
+
+v_make.html_node.tar.gz:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.html_node.tar.gz
+
+v_make.info.tar.gz:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.info.tar.gz
+
+v_make.txt:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.txt
+
+v_make.txt.gz:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.txt.gz
+
+v_make.dvi.gz:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.dvi.gz
+
+v_make.pdf:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.pdf
+
+v_make.texi.tar.gz:
+	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.texi.tar.gz
+
 clean:
 	rm -f http_client; rm -r http_client.dSYM;

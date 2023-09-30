@@ -112,31 +112,6 @@ int main(int argc, char *argv[])
         fwrite(buffer + content_start, 1, bytes_received - content_start, file);
         header_done = 1;  // Set the flag to indicate headers are done
 
-        /*
-        // Check the status code (e.g., HTTP/1.0 200 OK)
-        char* status_line = strtok(buffer, "\r\n");
-        if (status_line != NULL) {
-        if (strncmp(status_line, "HTTP/1.0 200", 12) != 0) {
-        fprintf(stderr, "HTTP Status: %s\n", status_line);
-        fclose(file);
-        free(request);
-        close(sockfd);
-        exit(1);
-        }
-        }
-        // Check the status code in the first line of the response
-        char* status_line = strtok(buffer, "\r\n");
-        if (status_line != NULL) {
-        if (strncmp(status_line, "HTTP/1.0 200", 12) != 0) {
-        fprintf(stderr, "HTTP Status: %s\n", status_line);
-        fclose(file);
-        free(request);
-        close(sockfd);
-        exit(1);
-        }
-        }
-         */
-
         if (http_status_code == -1) {
           char* status_line = strtok(buffer, "\r\n");
           if (status_line != NULL) {
