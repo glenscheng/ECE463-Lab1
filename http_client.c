@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <libgen.h> // for basename
 
-#define MAX_BUFFER_SIZE 1024
+#define MAX_BUFFER_SIZE 4096
 
 // Function to create an HTTP GET request
 char* create_get_request(const char* host, const char* path) {
@@ -94,22 +94,77 @@ int main(int argc, char *argv[])
   }
 
   char buffer[MAX_BUFFER_SIZE];
-  int bytes_received;
+  int header_done = 0;  // Flag to track when headers are done
+  int http_status_code = -1;
 
-  while ((bytes_received = recv(sockfd, buffer, sizeof(buffer), 0)) > 0) {
-    fwrite(buffer, 1, bytes_received, file);
+  while (1) {
+    int bytes_received = recv(sockfd, buffer, sizeof(buffer), 0);
+    if (bytes_received <= 0) {
+      break;  // No more data to receive
+    }
+
+    if (!header_done) {
+      // Search for the blank line that separates headers from content
+      char* blank_line = strstr(buffer, "\r\n\r\n");
+      if (blank_line != NULL) {
+        // Found the blank line, headers are done
+        int content_start = blank_line - buffer + 4;  // +4 to skip \r\n\r\n
+        fwrite(buffer + content_start, 1, bytes_received - content_start, file);
+        header_done = 1;  // Set the flag to indicate headers are done
+
+        /*
+        // Check the status code (e.g., HTTP/1.0 200 OK)
+        char* status_line = strtok(buffer, "\r\n");
+        if (status_line != NULL) {
+        if (strncmp(status_line, "HTTP/1.0 200", 12) != 0) {
+        fprintf(stderr, "HTTP Status: %s\n", status_line);
+        fclose(file);
+        free(request);
+        close(sockfd);
+        exit(1);
+        }
+        }
+        // Check the status code in the first line of the response
+        char* status_line = strtok(buffer, "\r\n");
+        if (status_line != NULL) {
+        if (strncmp(status_line, "HTTP/1.0 200", 12) != 0) {
+        fprintf(stderr, "HTTP Status: %s\n", status_line);
+        fclose(file);
+        free(request);
+        close(sockfd);
+        exit(1);
+        }
+        }
+         */
+
+        if (http_status_code == -1) {
+          char* status_line = strtok(buffer, "\r\n");
+          if (status_line != NULL) {
+            sscanf(status_line, "HTTP/1.1 %d", &http_status_code);
+            if (http_status_code != 200) {
+              fprintf(stderr, "HTTP Status: %d\n", http_status_code);
+              fclose(file);
+              free(request);
+              close(sockfd);
+              exit(1);
+            }
+          }
+        }
+      }
+    } else {
+      // Write the content to the file
+      fwrite(buffer, 1, bytes_received, file);
+    }
   }
 
   fclose(file);
 
-  if (bytes_received == -1) {
-    perror("Error while receiving response");
+  if (!header_done) {
+    fprintf(stderr, "Error: No content received\n");
     free(request);
     close(sockfd);
     exit(1);
   }
-
-  printf("File downloaded successfully: %s\n", filepath);
 
   // Clean up and close the socket
   free(request);
