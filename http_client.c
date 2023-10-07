@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
   char buffer[MAX_BUFFER_SIZE];
   int header_done = 0;  // Flag to track when headers are done
   int http_status_code = -1;
+  long content_length = -1; // Initialize content_length to -1
 
   while (1) {
     int bytes_received = recv(sockfd, buffer, sizeof(buffer), 0);
