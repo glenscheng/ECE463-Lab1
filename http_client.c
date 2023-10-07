@@ -97,12 +97,13 @@ int main(int argc, char *argv[])
   int header_done = 0;  // Flag to track when headers are done
   int http_status_code = -1;
   long content_length = -1; // Initialize content_length to -1
+  int bytes_received; // bytes received in each recv call
 
-  while (1) {
-    int bytes_received = recv(sockfd, buffer, sizeof(buffer), 0);
-    if (bytes_received <= 0) {
-      break;  // No more data to receive
-    }
+  while ((bytes_received = recv(sockfd, buffer, sizeof(buffer), 0)) > 0) {
+    // int bytes_received = recv(sockfd, buffer, sizeof(buffer), 0);
+    // if (bytes_received <= 0) {
+    //   break;  // No more data to receive
+    //}
 
     if (!header_done) {
       // Search for the blank line that separates headers from content
@@ -113,12 +114,13 @@ int main(int argc, char *argv[])
         fwrite(buffer + content_start, 1, bytes_received - content_start, file);
         header_done = 1;  // Set the flag to indicate headers are done
 
+        // deal with the status code
         if (http_status_code == -1) {
           char* status_line = strtok(buffer, "\r\n");
           if (status_line != NULL) {
             sscanf(status_line, "HTTP/1.1 %d", &http_status_code);
             if (http_status_code != 200) {
-              fprintf(stderr, "HTTP Status: %d\n", http_status_code);
+              fprintf(stdout, "%s\r\n", status_line);
               fclose(file);
               free(request);
               close(sockfd);
@@ -135,12 +137,14 @@ int main(int argc, char *argv[])
 
   fclose(file);
 
+/*
   if (!header_done) {
     fprintf(stderr, "Error: No content received\n");
     free(request);
     close(sockfd);
     exit(1);
   }
+*/
 
   // Clean up and close the socket
   free(request);
