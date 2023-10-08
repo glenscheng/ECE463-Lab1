@@ -17,11 +17,11 @@
 #include <sys/stat.h>
 #include <libgen.h> // for basename
 
-#define MAX_BUFFER_SIZE 4096
+#define MAX_BUFFER_SIZE 65535
 
 // Function to create an HTTP GET request
-char* create_get_request(const char* host, const char* path) {
-  char* request = (char*)malloc(MAX_BUFFER_SIZE);
+char *create_get_request(const char *host, const char *path) {
+  char *request = (char *) malloc(MAX_BUFFER_SIZE);
   if (request == NULL) {
     perror("Memory allocation error");
     exit(1);
@@ -31,21 +31,21 @@ char* create_get_request(const char* host, const char* path) {
   return request;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
   if (argc != 4) {
     fprintf(stderr, "usage: ./http_client [host] [port number] [filepath]\n");
     exit(1);
   }
 
-  const char* host = argv[1];
-  const char* port_str = argv[2];
-  const char* filepath = argv[3];
+  const char *host = argv[1];
+  const char *port_str = argv[2];
+  const char *filepath = argv[3];
 
   int port = atoi(port_str);
 
   // Extract the file name from the filepath
-  const char* filename = basename((char*)filepath);
+  const char *filename = basename((char *) filepath);
 
   // Create a socket
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
   }
 
   // Resolve host name to IP address
-  struct hostent* server = gethostbyname(host);
+  struct hostent *server = gethostbyname(host);
   if (server == NULL) {
     perror("Host not found");
     exit(1);
@@ -68,13 +68,13 @@ int main(int argc, char *argv[])
   memcpy(&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
 
   // Connect to the server
-  if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
+  if (connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1) {
     perror("Connection error");
     exit(1);
   }
 
   // Create an HTTP GET request
-  char* request = create_get_request(host, filepath);
+  char *request = create_get_request(host, filepath);
 
   // Send the request
   if (send(sockfd, request, strlen(request), 0) == -1) {
@@ -85,8 +85,8 @@ int main(int argc, char *argv[])
   }
 
   // Receive and save the response to a file
-  FILE* file = fopen(filename, "w");
-  if (file == NULL) {
+  FILE *ofp = fopen(filename, "w");
+  if (ofp == NULL) {
     perror("File creation error");
     free(request);
     close(sockfd);
@@ -100,28 +100,23 @@ int main(int argc, char *argv[])
   int bytes_received; // bytes received in each recv call
 
   while ((bytes_received = recv(sockfd, buffer, sizeof(buffer), 0)) > 0) {
-    // int bytes_received = recv(sockfd, buffer, sizeof(buffer), 0);
-    // if (bytes_received <= 0) {
-    //   break;  // No more data to receive
-    //}
-
     if (!header_done) {
       // Search for the blank line that separates headers from content
       char* blank_line = strstr(buffer, "\r\n\r\n");
       if (blank_line != NULL) {
         // Found the blank line, headers are done
         int content_start = blank_line - buffer + 4;  // +4 to skip \r\n\r\n
-        fwrite(buffer + content_start, 1, bytes_received - content_start, file);
+        fwrite(buffer + content_start, 1, bytes_received - content_start, ofp);
         header_done = 1;  // Set the flag to indicate headers are done
 
         // deal with the status code
         if (http_status_code == -1) {
-          char* status_line = strtok(buffer, "\r\n");
+          char *status_line = strtok(buffer, "\r\n");
           if (status_line != NULL) {
             sscanf(status_line, "HTTP/1.1 %d", &http_status_code);
             if (http_status_code != 200) {
               fprintf(stdout, "%s\r\n", status_line);
-              fclose(file);
+              fclose(ofp);
               free(request);
               close(sockfd);
               exit(1);
@@ -141,7 +136,7 @@ int main(int argc, char *argv[])
           }
           if (content_length == -1) { // Content-Length field not present in header
             fprintf(stdout, "Error: could not download the requested file (file length unknown)");
-            fclose(file);
+            fclose(ofp);
             free(request);
             close(sockfd);
             exit(1);
@@ -150,24 +145,15 @@ int main(int argc, char *argv[])
       }
     } else {
       // Write the content to the file
-      fwrite(buffer, 1, bytes_received, file);
+      fwrite(buffer, 1, bytes_received, ofp);
     }
   }
 
-  fclose(file);
-  printf("http status code: %d\n", http_status_code);
-  printf("content length: %ld\n", content_length);
+  // printf("http status code: %d\n", http_status_code);
+  // printf("content length: %ld\n", content_length);
 
-/*
-  if (!header_done) {
-    fprintf(stderr, "Error: No content received\n");
-    free(request);
-    close(sockfd);
-    exit(1);
-  }
-*/
-
-  // Clean up and close the socket
+  // Clean up 
+  fclose(ofp);
   free(request);
   close(sockfd);
 
