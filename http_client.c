@@ -128,6 +128,25 @@ int main(int argc, char *argv[])
             }
           }
         }
+        // check for Content-Length field
+        if (content_length == -1) {
+          char *length_line;
+          int content_length_field = -1;
+          int retval;
+          while ((retval = sscanf((length_line = strtok(NULL, "\r\n")), "Content-Length:  %ld", &content_length)) == 0) {
+            if (retval == EOF) {
+              content_length = -1;
+              break;
+            }
+          }
+          if (content_length == -1) { // Content-Length field not present in header
+            fprintf(stdout, "Error: could not download the requested file (file length unknown)");
+            fclose(file);
+            free(request);
+            close(sockfd);
+            exit(1);
+          }
+        }
       }
     } else {
       // Write the content to the file
@@ -136,6 +155,8 @@ int main(int argc, char *argv[])
   }
 
   fclose(file);
+  printf("http status code: %d\n", http_status_code);
+  printf("content length: %ld\n", content_length);
 
 /*
   if (!header_done) {

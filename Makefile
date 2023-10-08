@@ -94,4 +94,4 @@ v_make.texi.tar.gz:
 	valgrind --leak-check=full ./http_client www.gnu.org 80 /software/make/manual/make.texi.tar.gz
 
 clean:
-	rm -f http_client; rm -r http_client.dSYM;
+	rm -f http_client; rm make.html index.html make.html.gz make.html_node.tar.gz make.info.tar.gz make.txt make.txt.gz make.dvi.gz make.pdf make.texi.tar.gz
