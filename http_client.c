@@ -22,7 +22,7 @@
 char *create_get_request(const char *host, const char *path) {
   char *request = (char *) malloc(MAX_BUFFER_SIZE);
   if (request == NULL) {
-    perror("Memory allocation error");
+    // perror("Memory allocation error");
     exit(1);
   }
 
@@ -58,14 +58,14 @@ int main(int argc, char **argv)
   // Create a socket
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd == -1) {
-    perror("Socket creation error");
+    // perror("Socket creation error");
     exit(1);
   }
 
   // Resolve host name to IP address
   struct hostent *server = gethostbyname(host);
   if (server == NULL) {
-    perror("Host not found");
+    // perror("Host not found");
     exit(1);
   }
 
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
   // Connect to the server
   if (connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1) {
-    perror("Connection error");
+    // perror("Connection error");
     exit(1);
   }
 
@@ -86,22 +86,11 @@ int main(int argc, char **argv)
 
   // Send the request
   if (send(sockfd, request, strlen(request), 0) == -1) {
-    perror("Request sending error");
+    // perror("Request sending error");
     free(request);
     close(sockfd);
     exit(1);
   }
-
-  /*
-  // Receive and save the response to a file
-  FILE *ofp = fopen(filename, "w");
-  if (ofp == NULL) {
-  perror("File creation error");
-  free(request);
-  close(sockfd);
-  exit(1);
-  }
-   */
 
   FILE *ofp; // will open this if http_status_code == 200 and there is a Content-Length field
   char buffer[MAX_BUFFER_SIZE];
@@ -152,9 +141,10 @@ int main(int argc, char **argv)
             exit(1);
           }
         }
+        // open file cuz htt_response_status == 200 and Content-Length field exists
         ofp = fopen(filename, "w");
         if (ofp == NULL) {
-          perror("File creation error");
+          // perror("File creation error");
           free(request);
           close(sockfd);
           exit(1);
