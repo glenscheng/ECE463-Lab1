@@ -15,7 +15,6 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <libgen.h> // for basename
 
 #define MAX_BUFFER_SIZE 65535
 
@@ -29,6 +28,15 @@ char *create_get_request(const char *host, const char *path) {
 
   snprintf(request, MAX_BUFFER_SIZE, "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n", path, host);
   return request;
+}
+
+// My own basename function from libgen.h
+const char *my_basename(const char* path) {
+  const char *last_slash = strrchr(path, '/');
+  if (last_slash == NULL) {
+    return path;
+  }
+  return last_slash + 1;
 }
 
 int main(int argc, char **argv)
@@ -45,7 +53,7 @@ int main(int argc, char **argv)
   int port = atoi(port_str);
 
   // Extract the file name from the filepath
-  const char *filename = basename((char *) filepath);
+  const char *filename = my_basename((char *) filepath);
 
   // Create a socket
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -84,15 +92,18 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  /*
   // Receive and save the response to a file
   FILE *ofp = fopen(filename, "w");
   if (ofp == NULL) {
-    perror("File creation error");
-    free(request);
-    close(sockfd);
-    exit(1);
+  perror("File creation error");
+  free(request);
+  close(sockfd);
+  exit(1);
   }
+   */
 
+  FILE *ofp; // will open this if http_status_code == 200 and there is a Content-Length field
   char buffer[MAX_BUFFER_SIZE];
   int header_done = 0;  // Flag to track when headers are done
   int http_status_code = -1;
@@ -106,17 +117,17 @@ int main(int argc, char **argv)
       if (blank_line != NULL) {
         // Found the blank line, headers are done
         int content_start = blank_line - buffer + 4;  // +4 to skip \r\n\r\n
-        fwrite(buffer + content_start, 1, bytes_received - content_start, ofp);
+        // fwrite(buffer + content_start, 1, bytes_received - content_start, ofp);
         header_done = 1;  // Set the flag to indicate headers are done
 
         // deal with the status code
         if (http_status_code == -1) {
           char *status_line = strtok(buffer, "\r\n");
           if (status_line != NULL) {
-            sscanf(status_line, "HTTP/1.1 %d", &http_status_code);
+            int trash;
+            sscanf(status_line, "HTTP/1.%d %d", &trash, &http_status_code);
             if (http_status_code != 200) {
-              fprintf(stdout, "%s\r\n", status_line);
-              fclose(ofp);
+              fprintf(stdout, "%s\n", status_line);
               free(request);
               close(sockfd);
               exit(1);
@@ -136,12 +147,19 @@ int main(int argc, char **argv)
           }
           if (content_length == -1) { // Content-Length field not present in header
             fprintf(stdout, "Error: could not download the requested file (file length unknown)");
-            fclose(ofp);
             free(request);
             close(sockfd);
             exit(1);
           }
         }
+        ofp = fopen(filename, "w");
+        if (ofp == NULL) {
+          perror("File creation error");
+          free(request);
+          close(sockfd);
+          exit(1);
+        }
+        fwrite(buffer + content_start, 1, bytes_received - content_start, ofp);
       }
     } else {
       // Write the content to the file

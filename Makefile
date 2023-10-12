@@ -19,6 +19,9 @@ all: http_client
 t_404:
 	./http_client www.gnu.org 80 /software/make/manual/make.htmlll
 
+t_content_length_header:
+	./http_client www.gnu.org 80 /philosophy/philosophy.html
+
 testall: t_make.html t_index.html t_make.html.gz t_make.html_node.tar.gz t_make.info.tar.gz t_make.txt t_make.txt.gz t_make.dvi.gz t_make.pdf t_make.texi.tar.gz
 
 t_make.html:
